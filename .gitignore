@@ -1,7 +1,0 @@
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-novahr.db
-.env
-.DS_Store
