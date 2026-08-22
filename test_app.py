@@ -37,6 +37,13 @@ class NovaHRTests(unittest.TestCase):
     def test_multiple_day_leave_count(self):
         self.assertEqual(app.leave_days("2026-10-01", "2026-10-05"), 5)
 
+    def test_employee_signup_record(self):
+        with app.connect() as db:
+            db.execute("INSERT INTO users(employee_id,name,email,password_hash,role,pin_hash) VALUES(?,?,?,?,?,NULL)",
+                       ("EMP006","New Employee","new@example.com",app.digest("Welcome1","novahr_password_"),"Employee"))
+            row=db.execute("SELECT role,pin_hash FROM users WHERE email='new@example.com'").fetchone()
+            self.assertEqual(tuple(row),("Employee",None))
+
     def test_invalid_payroll_is_blocked(self):
         with self.assertRaises(sqlite3.IntegrityError):
             with app.connect() as db:
