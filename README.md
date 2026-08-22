@@ -1,5 +1,4 @@
 # Odoo-Nmit-Hackathon
-
 import re
 import sqlite3
 import hashlib
@@ -107,3 +106,4 @@ def register():
     conn.close()
 
     print(f"\nRegistration successful! You can now log in as {email}.")
+
