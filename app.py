@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import html
 import os
+import re
 import secrets
 import sqlite3
 from datetime import date, datetime
@@ -177,8 +178,12 @@ class NovaHRHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         path=urlparse(self.path).path
         if path=="/login":
-            form="""<section class='login'><div class='login-card'><div class='brand'><b>N</b>NovaHR</div><h1>Welcome back</h1><p class='muted'>Sign in to your Python-powered HR workspace.</p><form method='post' action='/login'><label>Role</label><select name='role'><option>Employee</option><option>HR</option><option>Admin</option></select><label>Email</label><input name='email' value='admin@novahr.demo' required><label>Password</label><input type='password' name='password' value='Admin@123' required><label>Admin PIN (admin only)</label><input type='password' name='pin' value='4826'><p><button class='primary' type='submit'>Sign in</button></p></form><p class='muted'>Admin demo: admin@novahr.demo · Admin@123 · PIN 4826</p></div></section>"""
+            created="<div class='flash'>Employee account created. You can sign in now.</div>" if parse_qs(urlparse(self.path).query).get("created") else ""
+            form=f"""<section class='login'><div class='login-card'><div class='brand'><b>N</b>NovaHR</div><h1>Welcome back</h1><p class='muted'>Sign in to your Python-powered HR workspace.</p>{created}<form method='post' action='/login'><label>Role</label><select name='role'><option>Employee</option><option>HR</option><option>Admin</option></select><label>Email</label><input name='email' value='admin@novahr.demo' required><label>Password</label><input type='password' name='password' value='Admin@123' required><label>Admin PIN (admin only)</label><input type='password' name='pin' value='4826'><p><button class='primary' type='submit'>Sign in</button></p></form><p>New employee? <a class='pill' href='/signup'>Create an account</a></p><p class='muted'>Admin demo: admin@novahr.demo · Admin@123 · PIN 4826</p></div></section>"""
             return self.send_html(page("Sign in",form))
+        if path=="/signup":
+            form="""<section class='login'><div class='login-card'><div class='brand'><b>N</b>NovaHR</div><h1>Create employee account</h1><p class='muted'>New accounts are always created with Employee permissions.</p><form method='post' action='/signup'><label>Full name</label><input name='name' maxlength='80' required><label>Email</label><input type='email' name='email' maxlength='120' required><label>Password</label><input type='password' name='password' minlength='8' required><label>Confirm password</label><input type='password' name='confirm_password' minlength='8' required><p class='muted'>Use at least 8 characters with uppercase, lowercase, and a number.</p><p><button class='primary' type='submit'>Create employee account</button></p></form><p><a class='pill' href='/login'>Back to sign in</a></p></div></section>"""
+            return self.send_html(page("Create account",form))
         if path=="/logout":
             jar=cookies.SimpleCookie(self.headers.get("Cookie")); token=jar.get("novahr_session")
             if token: SESSIONS.pop(token.value,None)
@@ -233,6 +238,22 @@ class NovaHRHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path=urlparse(self.path).path; data=self.form()
+        if path=="/signup":
+            name=data.get("name","").strip(); email=data.get("email","").strip().lower(); password=data.get("password",""); confirm=data.get("confirm_password","")
+            errors=[]
+            if len(name)<2: errors.append("Enter your full name.")
+            if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+",email): errors.append("Enter a valid email address.")
+            if len(password)<8 or not re.search(r"[A-Z]",password) or not re.search(r"[a-z]",password) or not re.search(r"\d",password): errors.append("Password must have 8 characters, uppercase, lowercase, and a number.")
+            if password!=confirm: errors.append("Passwords do not match.")
+            with connect() as db:
+                if db.execute("SELECT 1 FROM users WHERE lower(email)=lower(?)",(email,)).fetchone(): errors.append("An account already uses this email.")
+                if not errors:
+                    numbers=[int(r[0][3:]) for r in db.execute("SELECT employee_id FROM users WHERE employee_id GLOB 'EMP[0-9]*'") if r[0][3:].isdigit()]
+                    employee_id=f"EMP{max(numbers,default=0)+1:03d}"
+                    db.execute("INSERT INTO users(employee_id,name,email,password_hash,role,pin_hash) VALUES(?,?,?,?,?,NULL)",(employee_id,name,email,digest(password,"novahr_password_"),"Employee"))
+            if errors:
+                return self.send_html(page("Account not created","<section class='login'><div class='login-card error'><h1>Check your details</h1><p>"+"<br>".join(map(e,errors))+"</p><a class='pill' href='/signup'>Try again</a></div></section>"),400)
+            return self.redirect("/login?created=1")
         if path=="/login":
             with connect() as db: user=db.execute("SELECT * FROM users WHERE lower(email)=lower(?)",(data.get("email",""),)).fetchone()
             valid=user and secrets.compare_digest(user["password_hash"],digest(data.get("password",""),"novahr_password_")) and user["role"]==data.get("role")
