@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dayflow HRMS — Admin Console</title>
+<meta name="description" content="Dayflow HRMS admin console: employees, attendance, leave approvals, payroll, and analytics." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="15" stroke="#E3A93C" stroke-width="1.4"/>
+        <path d="M4 18 A12 12 0 0 0 28 18" stroke="#E3A93C" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <circle cx="16" cy="8.2" r="2.6" fill="#E3A93C"/>
+      </svg>
+      <div>
+        <div class="brand-name">Dayflow</div>
+        <div class="brand-tag">Admin Console</div>
+      </div>
+    </div>
+
+    <ul class="nav" id="nav-list"></ul>
+
+    <div class="sidebar-foot">
+      Signed in as <strong>HR Admin</strong><br>
+      <span id="today-label"></span>
+    </div>
+  </aside>
+
+  <!-- ============ Main content ============ -->
+  <main class="main" id="main-content">
+    <!-- rendered by app.js -->
+  </main>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

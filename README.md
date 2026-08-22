@@ -1,57 +1,67 @@
-# Odoo-Nmit-Hackathon
+# Dayflow HRMS — Admin Console (Website Version)
 
-import re
-import sqlite3
-import hashlib
+Same scope as before — Admin dashboard, employee list, employee details,
+attendance overview, leave approvals, payroll management, analytics &
+reports — rebuilt as a **static website**: plain HTML, CSS, and
+vanilla JavaScript. No build step, no framework, no server required.
 
-DB_FILE = "users.db"
+## Run it
 
+Just open `index.html` in a browser — or, for the cleanest experience
+(so relative links behave exactly like a deployed site), serve the
+folder locally:
 
-# --------------------------------------------------------------------------
-# Database setup
-# --------------------------------------------------------------------------
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            employee_id TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            role TEXT NOT NULL
-        )
-    """)
-    conn.commit()
-    conn.close()
+```bash
+# from inside this folder
+python -m http.server 8000
+# then open http://localhost:8000
+```
 
+Data (employees, attendance, leave requests) is generated on first
+load and kept in the browser's `localStorage`, so edits persist across
+reloads on the same machine/browser. To reset to fresh mock data, clear
+your browser's site data for this page (or run `resetStore()` in the
+browser console).
 
-# --------------------------------------------------------------------------
-# Password hashing (never store plain text passwords)
-# --------------------------------------------------------------------------
-def hash_password(password: str) -> str:
-    salt = "static_salt_demo"  # in production use a unique random salt per user
-    return hashlib.sha256((salt + password).encode()).hexdigest()
+## Files
 
+| File          | Purpose                                                        |
+|---------------|-----------------------------------------------------------------|
+| `index.html`  | Page shell: sidebar nav + content mount point                  |
+| `styles.css`  | Design system — colors, type, cards, tables, badges, charts     |
+| `data.js`     | Seed/mock data generator + localStorage read/write helpers      |
+| `app.js`      | Hash-based router + all 7 page renderers + CRUD interactions    |
 
-# --------------------------------------------------------------------------
-# Validation rules
-# --------------------------------------------------------------------------
-def validate_email(email: str) -> bool:
-    pattern = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
-    return re.match(pattern, email) is not None
+## Pages
 
+1. **Admin Dashboard** — headline metrics, department chart, recent leave requests, today's attendance
+2. **Employee List** — searchable/filterable table, add-employee form, click a row to open Employee Details
+3. **Employee Details** — profile edit, salary structure, attendance/leave history (tabs)
+4. **Attendance Overview** — filterable log + status breakdown chart, manual admin override
+5. **Leave Approvals** — approve/reject with comments, full history tab
+6. **Payroll Management** — salary table, edit structure, generate a downloadable salary slip
+7. **Analytics & Reports** — attendance/leave/payroll charts + CSV export
 
-def validate_password(password: str) -> list:
-    errors = []
-    if len(password) < 8:
-        errors.append("Password must be at least 8 characters long.")
-    if not re.search(r"[A-Z]", password):
-        errors.append("Password must contain at least one uppercase letter.")
-    if not re.search(r"[a-z]", password):
-        errors.append("Password must contain at least one lowercase letter.")
-    if not re.search(r"\d", password):
-        errors.append("Password must contain at least one digit.")
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-        errors.append("Password must contain at least one special character.")
-    return errors
+## Deploying
+
+This is a plain static site — it works as-is on **GitHub Pages**,
+Netlify, Vercel, or any static host:
+
+```bash
+# GitHub Pages, from your repo root
+git add index.html styles.css data.js app.js README.md
+git commit -m "Add admin/HR web console"
+git push
+# then enable Pages for this repo/branch in GitHub Settings → Pages
+```
+
+## Notes for merging with teammates
+
+- This UI currently reads/writes `localStorage` directly so it works
+  standalone for the demo. When the team's backend/auth API is ready,
+  swap the calls in `data.js` (`loadStore`/`saveStore`) for `fetch()`
+  calls to that API — the rendering code in `app.js` doesn't need to
+  change, since it just reads from the in-memory `store` object.
+- Each employee has a `role` field (`"Admin"` / `"Employee"`) meant to
+  line up with whatever the auth module produces — gate this console
+  behind `role === "Admin"` once that's wired in.
