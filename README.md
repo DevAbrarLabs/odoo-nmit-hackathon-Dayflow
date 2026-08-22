@@ -12,7 +12,7 @@ Flow:
      on top of the password.
   4. On successful Login, ALL of your personal info is shown on screen
      first, then you're taken to your dashboard (Employee/HR vs Admin).
-
+..
 Roles: Employee, HR, Admin
 
 Run with:
